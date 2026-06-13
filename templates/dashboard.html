@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Dashboard - {{ sel_date.isoformat() }}</h1>
+
+<form method="get" action="{{ url_for('dashboard') }}">
+    <label>Pick date: <input type="date" name="date" value="{{ sel_date.isoformat() }}"></label>
+    <button type="submit">Go</button>
+    {% if user.role == 'manager' %}
+        <a href="#create">Create / Assign</a>
+    {% endif %}
+</form>
+
+<h2>Assignments</h2>
+<table>
+    <thead>
+        <tr><th>Engineer</th><th>Assignments (task / role / shift)</th></tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+        <tr>
+            <td>{{ u.username }}</td>
+            <td>
+                {% set list = assignments.get(u.id, []) %}
+                {% if not list %}
+                    —
+                {% else %}
+                    <ul>
+                    {% for a in list %}
+                        <li>
+                            {% if a.task_id %}
+                                {% set t = (tasks | selectattr('id','equalto',a.task_id) | list).0 %}
+                                <strong>{{ t.title if t else 'Task #' ~ a.task_id }}</strong>
+                                {% if t and t.description %}
+                                    <div style="font-size:0.9em;color:#444;margin-top:4px">{{ t.description }}</div>
+                                {% endif %}
+                            {% else %}
+                                (no task)
+                            {% endif %}
+                            {% if a.role %} — {{ a.role }}{% endif %}
+                            {% if a.shift %} — {{ a.shift }}{% endif %}
+                            {% if user.role == 'manager' %}
+                                <form style="display:inline" method="get" action="{{ url_for('edit_assignment', assignment_id=a.id) }}">
+                                    <button type="submit">Edit</button>
+                                </form>
+                                <form style="display:inline" method="post" action="{{ url_for('delete_assignment', assignment_id=a.id) }}" onsubmit="return confirm('Delete assignment?')">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if user.role == 'manager' %}
+    <hr>
+    <p>
+        <a href="{{ url_for('export_csv') }}?month={{ sel_date.strftime('%Y-%m') }}">Export month CSV</a>
+        &nbsp;|&nbsp;
+        <a href="{{ url_for('export_csv') }}?start={{ sel_date.isoformat() }}&end={{ sel_date.isoformat() }}">Export day CSV</a>
+    </p>
+    <h2 id="create">Create Task</h2>
+    <form method="post" action="{{ url_for('create_task') }}">
+        <label>Title: <input name="title" required></label><br>
+        <label>Description: <input name="description"></label><br>
+        <button type="submit">Create Task</button>
+    </form>
+
+    <h2>Assign</h2>
+    <form method="post" action="{{ url_for('assign') }}">
+        <label>Assignee:
+            <select name="assignee">
+                {% for u in users %}
+                    <option value="{{ u.id }}">{{ u.username }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <br>
+        <label>Task:
+            <select name="task_id">
+                <option value="">(no task)</option>
+                {% for t in tasks %}
+                    <option value="{{ t.id }}">{{ t.title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <br>
+        <label>Role: <input name="role" placeholder="e.g. Lead, Support"></label><br>
+        <label>Shift: <input name="shift" placeholder="e.g. Morning, Evening"></label><br>
+        <label>Date: <input type="date" name="date" value="{{ sel_date.isoformat() }}"></label><br>
+        <button type="submit">Assign</button>
+    </form>
+{% endif %}
+
+{% endblock %}

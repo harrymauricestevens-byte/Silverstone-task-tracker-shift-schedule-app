@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Edit Assignment</h1>
+<form method="post">
+    <label>Assignee:
+        <select name="assignee">
+            {% for u in users %}
+                <option value="{{ u.id }}" {% if u.id==assignment.user_id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <br>
+    <label>Task:
+        <select name="task_id">
+            <option value="">(no task)</option>
+            {% for t in tasks %}
+                <option value="{{ t.id }}" {% if t.id==assignment.task_id %}selected{% endif %}>{{ t.title }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <br>
+    <label>Role: <input name="role" value="{{ assignment.role or '' }}"></label><br>
+    <label>Shift: <input name="shift" value="{{ assignment.shift or '' }}"></label><br>
+    <label>Date: <input type="date" name="date" value="{{ assignment.date.isoformat() }}"></label><br>
+    <button type="submit">Save</button>
+    <a href="{{ url_for('dashboard', date=assignment.date.isoformat()) }}">Cancel</a>
+</form>
+
+{% endblock %}
